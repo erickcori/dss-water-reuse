@@ -26,9 +26,26 @@ shap_table = pd.DataFrame({"SHAP Value (ϕ)": shap_values, "Out-Degree (C_out)":
 st.dataframe(shap_table.style.highlight_max(axis=0, color='lightyellow'))
 
 # === Section 3: Composite Score ===
+import networkx as nx
+
+# Crear grafo dirigido desde la matriz CIA
+G = nx.from_pandas_adjacency(cia_df, create_using=nx.DiGraph)
+
+# Calcular betweenness centrality (C_B)
+C_B_dict = nx.betweenness_centrality(G, weight='weight', normalized=True)
+C_B = pd.Series(C_B_dict).reindex(cia_df.index)
+
+# Calcular Composite Score
+composite_score = 0.5 * shap_values + 0.3 * C_out + 0.2 * C_B
+
+# Mostrar tabla
 st.subheader(":bar_chart: Composite Prioritization Score")
-composite_score = 0.5*shap_values + 0.3*C_out + 0.2*np.random.rand(len(shap_values))  # Placeholder
-st.dataframe(pd.DataFrame({"SHAP Value (ϕ)": shap_values, "Out-Degree (C_out)": C_out, "Composite Score": composite_score}).sort_values("Composite Score", ascending=False))
+st.dataframe(pd.DataFrame({
+    "SHAP Value (ϕ)": shap_values,
+    "Out-Degree (C_out)": C_out,
+    "Betweenness (C_B)": C_B.round(3),
+    "Composite Score": composite_score.round(3)
+}).sort_values("Composite Score", ascending=False))
 
 # === Section 4: What-if Simulation ===
 st.subheader(":warning: What-if Simulation – Removing G4")

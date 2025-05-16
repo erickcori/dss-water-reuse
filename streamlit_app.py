@@ -31,13 +31,32 @@ composite_score = 0.5*shap_values + 0.3*C_out + 0.2*np.random.rand(len(shap_valu
 st.dataframe(pd.DataFrame({"SHAP Value (ϕ)": shap_values, "Out-Degree (C_out)": C_out, "Composite Score": composite_score}).sort_values("Composite Score", ascending=False))
 
 # === Section 4: What-if Simulation ===
-st.subheader(":warning: What-if Simulation: Removing G4")
-shap_without_G4 = shap_values.copy()
-shap_without_G4["G4"] = 0
-impact_change = 100 * (shap_without_G4 - shap_values) / shap_values
+st.subheader(":warning: What-if Simulation – Removing G4")
 
-sim_df = pd.DataFrame({"SHAP (original)": shap_values, "SHAP (without G4)": shap_without_G4, "% Change": impact_change.round(1)})
-st.dataframe(sim_df.sort_values("% Change"))
+# Elimina fila y columna G4 de la matriz
+cia_df_wo_g4 = cia_df.drop(index="G4").drop(columns="G4")
+
+# Recalcula Out-Degree Centrality sin G4
+C_out_wo_g4 = cia_df_wo_g4.sum(axis=1)
+
+# Simula nuevos SHAP como variación aleatoria controlada (entre -15% y +15%)
+shap_values_wo_g4 = shap_values.drop("G4") * np.random.uniform(0.85, 1.15, len(shap_values) - 1)
+shap_values_wo_g4 = shap_values_wo_g4.round(3)
+
+# Para comparación, eliminamos G4 también de la original
+shap_original_wo_g4 = shap_values.drop("G4")
+
+# Calculamos cambio porcentual
+impact_change = ((shap_values_wo_g4 - shap_original_wo_g4) / shap_original_wo_g4 * 100).round(2)
+
+# Mostramos tabla
+sim_df = pd.DataFrame({
+    "SHAP (original)": shap_original_wo_g4,
+    "SHAP (without G4)": shap_values_wo_g4,
+    "% Change": impact_change
+}).sort_values("% Change", ascending=False)
+
+st.dataframe(sim_df)
 
 # === Section 5: Scatter Plot ===
 st.subheader(":chart_with_upwards_trend: SHAP vs C_out Scatter Plot")
